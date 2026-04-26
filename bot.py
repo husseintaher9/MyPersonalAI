@@ -13,7 +13,7 @@ def run(): app.run(host='0.0.0.0', port=8080)
 
 # --- المعلومات الخاصة بك ---
 TELEGRAM_TOKEN = "8759282929:AAFKcbklqSOHX_MIF5zluvyr0o7-PZebAqI"
-GROQ_API_KEY = "هنا_حط_كود_الـ_gsk_الذي_نسخته"
+GROQ_API_KEY = "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"
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 client = Groq(api_key=GROQ_API_KEY)
