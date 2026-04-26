@@ -1,40 +1,63 @@
 import os
 import telebot
-import requests
+from groq import Groq
 from flask import Flask
 from threading import Thread
 
-# سيرفر صغير لإبقاء البوت حياً على Render
+# سيرفر Render الصغير
 app = Flask('')
 @app.route('/')
-def home(): return "I'm alive!"
+def home(): return "AI Iraqi Bot is Live!"
 
 def run(): app.run(host='0.0.0.0', port=8080)
 
-# بياناتك الخاصة
-TOKEN = "8759282929:AAFKcbklqSOHX_MIF5zluvyr0o7-PZebAqI"
-HF_TOKEN = "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"
+# --- المعلومات الخاصة بك ---
+TELEGRAM_TOKEN = "8759282929:AAFKcbklqSOHX_MIF5zluvyr0o7-PZebAqI"
+GROQ_API_KEY = "هنا_حط_كود_الـ_gsk_الذي_نسخته"
 
-bot = telebot.TeleBot(TOKEN)
+bot = telebot.TeleBot(TELEGRAM_TOKEN)
+client = Groq(api_key=GROQ_API_KEY)
 
-def get_ai_reply(msg):
-    url = "https://api-inference.huggingface.co/models/meta-llama/Llama-3.2-3B-Instruct"
-    headers = {"Authorization": f"Bearer {HF_TOKEN}", "x-wait-for-model": "true"}
-    system = "أنت مساعد ذكي، منطقي، ومثقف. تجيب بدقة ولباقة."
-    prompt = f"<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n{system}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{msg}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
+def get_ai_reply(user_message):
     try:
-        r = requests.post(url, headers=headers, json={"inputs": prompt, "parameters": {"max_new_tokens": 500}}, timeout=20)
-        return r.json()[0]['generated_text'].split("assistant")[-1].strip()
-    except: return "أهلاً! أنا ذكاء اصطناعي، كيف أساعدك؟"
+        # هنا نعطي التعليمات للهجة العراقية والمنطق
+        completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system", 
+                    "content": "أنت مساعد ذكي ومنطقي جداً. جاوب على كل الأسئلة بذكاء وباللهجة العراقية (بغدادية) حصراً، خلي كلامك قريب للقلب ومفيد كأنك صديق عراقي حكيم."
+                },
+                {"role": "user", "content": user_message}
+            ],
+            temperature=0.7,
+            max_tokens=1000
+        )
+        return completion.choices[0].message.content
+    except Exception as e:
+        print(f"Error: {e}")
+        return "والله يا غالي حالياً عندي ضغط، ثواني وارجعلك!"
 
-@bot.business_message_handler(func=lambda m: True)
-def handle(m):
-    if m.from_user.id == bot.get_me().id: return
-    reply = get_ai_reply(m.text)
-    if reply:
-        bot.send_message(m.chat.id, reply, business_connection_id=m.business_connection_id)
+@bot.business_message_handler(func=lambda message: True)
+def handle_business_message(message):
+    if message.from_user.id == bot.get_me().id:
+        return
+    
+    user_text = message.text
+    if user_text:
+        try:
+            bot.send_chat_action(message.chat.id, 'typing')
+            reply = get_ai_reply(user_text)
+            
+            bot.send_message(
+                message.chat.id, 
+                reply, 
+                business_connection_id=message.business_connection_id
+            )
+        except:
+            pass
 
 if __name__ == "__main__":
     Thread(target=run).start()
-    print("الذكاء الاصطناعي يعمل...")
+    print("البوت العراقي المنطقي يعمل الآن...")
     bot.infinity_polling()
